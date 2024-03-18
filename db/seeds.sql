@@ -1,15 +1,15 @@
-INSERT INTO department (id, name)
-VALUES (1, 'Development'),
-       (2, 'Human Resources'),
-       (3, 'Quality Management');
+INSERT INTO department (name)
+VALUES ('Development'),
+       ('Human Resources'),
+       ('Quality Management');
 
-INSERT INTO role (id, title, salary, department_id)
-VALUES (1, 'Software Engineer', 120000, 1),
-       (2, 'Chief Technology Officer', 300000, 1),
-       (3, 'Talent Acquisition', 54000, 2),
-       (4, 'HR Manager', 75000, 2),
-       (5, 'Quality Technician', 45000, 3),
-       (6, 'Quality Control Supervisor', 80000, 3);
+INSERT INTO role (title, salary, department_id)
+VALUES ('Software Engineer', 120000, 1),
+       ('Chief Technology Officer', 300000, 1),
+       ('Talent Acquisition', 54000, 2),
+       ('HR Manager', 75000, 2),
+       ('Quality Technician', 45000, 3),
+       ('Quality Control Supervisor', 80000, 3);
 
 INSERT INTO employee (first_name, last_name, role_id)
 VALUES  ('John', 'Pecan', 1),

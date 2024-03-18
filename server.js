@@ -1,19 +1,9 @@
 // Import required packages
-const express = require('express');
 const mysql = require('mysql2');
-
-// Import data from the employees.json file
-const { department, role, employee } = require('./db/employees.json');
+const inquirer = require('inquirer');
 
 // Set PORT for server to use
 const PORT = process.env.PORT || 3001;
-
-// Initialize app
-const app = express();
-
-// Import middleware
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
 
 // Connect to the Database
 const db = mysql.createConnection ({
@@ -23,36 +13,80 @@ const db = mysql.createConnection ({
     database: 'employees_db',
 }, console.log('Connected to employees_db'));
 
-// Set homepage end point
-app.get('/', (req, res) => {
-    res.send('Welcome to our homepage!')
-});
+// Query the user
+const inquiries = [
+    {
+        type: 'list',
+        name: 'employee_tracker',
+        message: 'What would you like to do?',
+        choices: ['View All Departments', 'View All Roles', 'View All Employees', 'Add Department', 'Add Role', 'Add Employee', 'Update Employee Role', 'Quit']
+    }
+]
 
-// Set end point to retrieve all departments 
-app.get('/api/departments', (req, res) => {
-    db.query('SELECT * FROM department', function (err, results) {
+// Initialize inquiries
+async function init() {
+    try {
+        const data = await inquirer.prompt(inquiries);
+        if (data.employee_tracker === "View All Departments") {
+            viewDepts();
+        }
+        if (data.employee_tracker === "Update Employee Role") {
+            updateEmployee();
+        }
+    } catch (err) {
+        console.error(err);
+    }
+};
+
+init();
+
+const viewDepts = () => {
+    db.query('SELECT department.id, department.name AS departments FROM department', function (err, results) {
         console.log(results);
-        res.status(200).json(results);
+        init();
     });
-});
+};
 
-// Set end point to retrieve all roles
-app.get('/api/roles', (req, res) => {
-    db.query('SELECT * FROM role', function (err, results) {
-        console.log(results);
-        res.status(200).json(results);
-    });
-});
-
-// Set end point to retrieve all employees
-app.get('/api/employees', (req, res) => {
+const updateEmployee = () => {
     db.query('SELECT * FROM employee', function (err, results) {
         console.log(results);
-        res.status(200).json(results);
-    });
-});
-
-// Listen For Requests To Server
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`)
-});
+        const employeeArr = results.map(({ first_name, last_name, id }) => ({
+            name: `${first_name} ${last_name}`,
+            value: id
+        }));
+        console.log(employeeArr)
+        inquirer.prompt([
+            {
+                type: 'list',
+                name: 'employees',
+                message: 'Which employee would you like to update?',
+                choices: employeeArr
+            }
+        ]).then((results) => {
+            console.log('results', results);
+            db.query('SELECT * FROM role', function (err, res) {
+                console.log(res);
+                const roleArr = res.map(({ id, title }) => ({
+                    name: `${title}`,
+                    value: id
+                }));
+                console.log(roleArr)
+                inquirer.prompt([
+                    {
+                        type: 'list',
+                        name: 'roles',
+                        message: 'Which role would you like to assign?',
+                        choices: roleArr
+                    }
+                ]).then((rollsResults) => {
+                    const rollId = rollsResults.roles;
+                    const employeeId = results.employees;
+                    console.log(rollId, employeeId)
+                    db.query('UPDATE employee SET role_id = ? WHERE id = ?', [rollId, employeeId])
+                    console.log('Employee role updated successfullly');
+                    init();
+                })
+            })
+        })
+    })
+}
