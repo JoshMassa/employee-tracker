@@ -55,9 +55,14 @@ async function init() {
 
 init();
 
-const fetchDepartments = async () => {
-    const getDepts = `SELECT id AS value, name FROM department;`;
+const fetchDepartments = async (departmentName) => {
+    const getDepts = `SELECT id, name FROM department;`;
     const [departments] = await db.promise().query(getDepts);
+
+    if (departmentName) {
+        const department = departments.find(dept => dept.name === departmentName);
+        return department ? department.value : null;
+    }
     return departments;
 };
 
@@ -69,14 +74,14 @@ const viewDepts = () => {
 };
 
 const viewRoles = () => {
-    db.query('SELECT role.id AS role_id, role.title, role.salary, role.department_id FROM role', function (err, results) {
+    db.query('SELECT role.id AS role_id, role.title, role.salary, department.name AS department FROM role LEFT JOIN department ON role.department_id = department.id', function (err, results) {
         console.table(results);
         init();
     });
 };
 
 const viewEmployees = () => {
-    db.query('SELECT employee.id, employee.first_name, employee.last_name, employee.manager_id, role.title AS role_title, role.salary, department.name AS department_name FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id;', function (err, results) {
+    db.query('SELECT employee.id as emp_id, employee.first_name, employee.last_name, employee.manager_id, role.title AS role, role.salary, department.name AS department FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id;', function (err, results) {
         console.table(results);
         init();
     });
@@ -94,7 +99,7 @@ const addDept = () => {
             if (err) {
                 console.error('Error adding department:', error);
             } else {
-            console.table(results);
+            console.log('New department added successfully');
             init();
             }
         });
@@ -105,6 +110,7 @@ const addDept = () => {
 };
 
 const addRole = async () => {
+
     const choices = await fetchDepartments();
     inquirer.prompt ([
         {
@@ -123,13 +129,13 @@ const addRole = async () => {
             message: 'Please assign the new role to one of the following departments:',
             choices: choices.map(department => ({
                 name: department.name,
-                value: department.value
+                value: department.id
             })),
         }
     ]).then((answers) => {
         const title = answers.newRole;
         const salary = answers.newRoleSalary
-        const departmentId = answers.department;
+        const departmentId = answers.newRoleDept;
 
         db.query('INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)', [title, salary, departmentId], (err, results) => {
             if (err) {
