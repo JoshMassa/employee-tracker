@@ -45,6 +45,9 @@ async function init() {
         if (data.employee_tracker === "Add Role") {
             addRole();
         }
+        if (data.employee_tracker === "Add Employee") {
+            addEmployee();
+        }
         if (data.employee_tracker === "Update Employee Role") {
             updateEmployee();
         }
@@ -148,14 +151,78 @@ const addRole = async () => {
     });
 };
 
+const addEmployee = () => {
+    inquirer.prompt([
+        {
+            type: 'input',
+            name: 'firstName',
+            message: 'Please enter the new employee\'s first name:',
+        },
+        {
+            type: 'input',
+            name: 'lastName',
+            message: 'Please enter the new employee\'s last name:',
+        }
+    ]).then((answers) => {
+        const { firstName, lastName } = answers;
+        db.query('SELECT * FROM role', function (err, res) {
+            if (err) {
+                console.error('Error fetching roles:', err);
+                return;
+            }
+            const roleArr = res.map(({ id, title }) => ({
+                name: `${title}`,
+                value: id
+            }));
+            inquirer.prompt([
+                {
+                    type: 'list',
+                    name: 'roleId',
+                    message: 'Which role would you like to assign?',
+                    choices: roleArr
+                }
+            ]).then((roleResults) => {
+                const { roleId } = roleResults;
+                db.query('SELECT * FROM employee', function (err, employees) {
+                    if (err) {
+                        console.error('Error fetching employees:', err);
+                        return;
+                    }
+                    const managerArr = employees.map(({ id, first_name, last_name }) => ({
+                        name: `${first_name} ${last_name}`,
+                        value: id
+                    }));
+                    managerArr.unshift({ name: 'None', value: null });
+                    inquirer.prompt([
+                        {
+                            type: 'list',
+                            name: 'managerId',
+                            message: 'Please select a manager for the new employee:',
+                            choices: managerArr
+                        }
+                    ]).then((managerResult) => {
+                        const { managerId } = managerResult;
+                        db.query('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', [firstName, lastName, roleId, managerId], (err, res) => {
+                            if (err) {
+                                console.error('Error adding new employee:', err);
+                                return;
+                            }
+                            console.log('New employee added successfully');
+                            init();
+                        });
+                    });
+                });
+            });
+        });
+    });
+};
+
 const updateEmployee = () => {
     db.query('SELECT * FROM employee', function (err, results) {
-        console.log(results);
         const employeeArr = results.map(({ first_name, last_name, id }) => ({
             name: `${first_name} ${last_name}`,
             value: id
         }));
-        console.log(employeeArr)
         inquirer.prompt([
             {
                 type: 'list',
@@ -164,14 +231,11 @@ const updateEmployee = () => {
                 choices: employeeArr
             }
         ]).then((results) => {
-            console.log('results', results);
             db.query('SELECT * FROM role', function (err, res) {
-                console.log(res);
                 const roleArr = res.map(({ id, title }) => ({
                     name: `${title}`,
                     value: id
                 }));
-                console.log(roleArr)
                 inquirer.prompt([
                     {
                         type: 'list',
@@ -179,15 +243,14 @@ const updateEmployee = () => {
                         message: 'Which role would you like to assign?',
                         choices: roleArr
                     }
-                ]).then((rollsResults) => {
-                    const rollId = rollsResults.roles;
+                ]).then((roleResults) => {
+                    const roleId = roleResults.roles;
                     const employeeId = results.employees;
-                    console.log(rollId, employeeId)
-                    db.query('UPDATE employee SET role_id = ? WHERE id = ?', [rollId, employeeId])
+                    db.query('UPDATE employee SET role_id = ? WHERE id = ?', [roleId, employeeId])
                     console.log('Employee role updated successfullly');
                     init();
-                })
-            })
-        })
-    })
-}
+                });
+            });
+        });
+    });
+};
