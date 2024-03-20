@@ -51,6 +51,9 @@ async function init() {
         if (data.employee_tracker === "Update Employee Role") {
             updateEmployee();
         }
+        if (data.employee_tracker === "Quit") {
+            quit();
+        }
     } catch (err) {
         console.error(err);
     }
@@ -254,3 +257,7 @@ const updateEmployee = () => {
         });
     });
 };
+
+const quit = () => {
+    process.exit();
+}
